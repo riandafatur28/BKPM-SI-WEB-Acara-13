@@ -1,85 +1,97 @@
 <?php
-require('koneksi.php');
+// Class koneksi ke database
+class Database {
+    private $host = "localhost";
+    private $user = "root";
+    private $password = "";
+    private $dbname = "users";
+    public $koneksi;
 
-session_start();
+    public function __construct() {
+        $this->koneksi = new mysqli($this->host, $this->user, $this->password, $this->dbname);
 
+        if ($this->koneksi->connect_error) {
+            die("Koneksi gagal: " . $this->koneksi->connect_error);
+        }
+    }
+}
+
+// Class login untuk melakukan proses login
+class Login {
+    private $db;
+
+    public function __construct($db) {
+        $this->db = $db;
+    }
+
+    public function loginUser($email, $pass) {
+        // Memastikan input email dan password tidak kosong
+        if (!empty($email) && !empty(trim($pass))) {
+            // Query untuk mengambil data user berdasarkan email
+            $query = "SELECT * FROM user_detail WHERE user_email = ?";
+            $stmt = $this->db->koneksi->prepare($query);
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows != 0) {
+                // Mengambil data dari hasil query
+                $row = $result->fetch_assoc();
+                $userVal = $row["user_email"];
+                $passVal = $row["user_password"];
+                $userName = $row['user_fullname'];
+
+                // Validasi email dan password
+                if ($userVal == $email && $passVal == $pass) {
+                    // Jika berhasil login, redirect ke home.php dengan mengirimkan fullname
+                    header('Location: home.php?user_fullname=' . urlencode($userName));
+                    exit();
+                } else {
+                    $this->redirectWithError('user atau password salah!!');
+                }
+            } else {
+                $this->redirectWithError('user tidak ditemukan!!');
+            }
+        } else {
+            $this->redirectWithError('Data Tidak Boleh Kosong !!');
+        }
+    }
+
+    // Fungsi untuk menampilkan pesan error dan redirect
+    private function redirectWithError($error) {
+        echo $error;
+        header('Location: login.php');
+        exit();
+    }
+}
+
+// Inisialisasi objek database dan login
+$db = new Database();
+$login = new Login($db);
+
+// Cek apakah tombol submit ditekan
 if (isset($_POST['submit'])) {
     $email = $_POST['txt_email'];
     $pass = $_POST['txt_pass'];
 
-    if (!empty(trim($email)) && !empty(trim($pass))) {
-        
-        // Prepare the SQL statement
-        $query = "SELECT * FROM user_detail WHERE user_email = ?";
-        $stmt = mysqli_prepare($koneksi, $query);
-
-        // Bind parameters and execute
-        mysqli_stmt_bind_param($stmt, 's', $email);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-
-        // Fetch data
-        $userVal = $pasVal = $username = $level = '';
-        if ($row = mysqli_fetch_assoc($result)) {
-            $id = $row['id'];
-            $userVal = $row['user_email'];
-            $pasVal = $row['user_password'];
-            $username = $row['user_fullname'];
-            $level = $row['level'];
-        }
-
-        // Verify user and password
-        if ($userVal == $email && $pasVal == $pass) {
-            header('Location: home.php');
-            exit();
-        } else {
-            $error = 'User atau password salah!!';
-            header('Location: login.php?error=' . urlencode($error));
-            exit();
-        }
-        
-    } else {
-        $error = 'Data Tidak Boleh Kosong';
-        echo $error;
-    }
+    // Memanggil fungsi loginUser untuk memproses login
+    $login->loginUser($email, $pass);
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
+
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Page</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container mt-4">
-        <h2>Login</h2>
-        <?php
-        if (isset($_GET['error'])) {
-            echo '<div class="alert alert-danger">' . htmlspecialchars($_GET['error']) . '</div>';
-        }
-        ?>
-        <form action="login.php" method="post">
-            <div class="form-group">
-                <label for="txt_email">Email:</label>
-                <input type="text" id="txt_email" name="txt_email" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="txt_pass">Password:</label>
-                <input type="password" id="txt_pass" name="txt_pass" class="form-control" required>
-            </div>
-            <button type="submit" name="submit" class="btn btn-primary">Sign In</button>
-        </form>
-    </div>
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <form action="login.php" method="POST">
+        <p>email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <input type="text" name="txt_email"></p>
+        <p>password : <input type="password" name="txt_pass"></p>
+        <button type="submit" name="submit">Sign In</button>
+    </form>
+    <p><a href="register.php">Daftar</a></p>
 </body>
 
 </html>

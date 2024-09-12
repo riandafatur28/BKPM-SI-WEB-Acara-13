@@ -1,18 +1,28 @@
 <?php
+class koneksi {
 
-$server = "localhost";
-$username = "root";
-$password = "";
-$db = "users";
+    private $host = "localhost";
+    private $user = "root";
+    private $pass = "";
+    private $database = "users";
+    protected $koneksi;
 
-// Membuat koneksi ke database
-$koneksi = mysqli_connect($server, $username, $password, $db);
+    public function __construct(){
+        try {
+            // Menggunakan PDO untuk menghubungkan ke database MySQL
+            $this->koneksi = new PDO("mysql:host=$this->host;dbname=$this->database", $this->user, $this->pass);
+            // Mengatur mode error menjadi exception
+            $this->koneksi->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        }
+        catch(PDOException $e) {
+            // Menampilkan pesan error jika terjadi kesalahan koneksi
+            echo "Koneksi gagal: " . $e->getMessage();
+        }
+    }
 
-// Mengecek apakah koneksi berhasil
-// if(mysqli_connect_errno()){
-//     echo "Koneksi gagal : " . mysqli_connect_error();
-// } else {
-//     echo "Koneksi berhasil!";
-// }
-
+    // Metode untuk mendapatkan koneksi
+    public function getKoneksi(){
+        return $this->koneksi;
+    }
+}
 ?>
